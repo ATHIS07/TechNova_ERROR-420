@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout Source') {
+            steps {
+                echo 'Checking out source code from GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('Verify Project') {
+            steps {
+                sh '''
+                    echo "Project Files:"
+                    pwd
+                    ls -la
+
+                    if [ ! -f index.html ]; then
+                        echo "ERROR: index.html not found!"
+                        exit 1
+                    fi
+
+                    echo "Project verification successful."
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                    echo "Static website detected."
+                    echo "No compilation required."
+                '''
+            }
+        }
+
+        stage('Archive Website') {
+            steps {
+                sh '''
+                    zip -r website.zip .
+                '''
+                archiveArtifacts artifacts: 'website.zip', fingerprint: true
+            }
+        }
+
+        stage('Deployment') {
+            steps {
+                echo 'Deployment stage will be configured later.'
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+        }
+
+        always {
+            cleanWs()
+        }
+    }
+}
