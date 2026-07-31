@@ -58,6 +58,28 @@ pipeline {
                 '''
             }
         }
+
+        stage('Publish Event to EventBridge') {
+            steps {
+                sh """
+                echo "========================================"
+                echo "Publishing Event to EventBridge"
+                echo "========================================"
+
+                aws events put-events --entries '[
+                  {
+                    "Source":"pipewatch.jenkins",
+                    "DetailType":"Pipeline Status",
+                    "EventBusName":"default",
+                    "Detail":"{\\"pipelineName\\":\\"PipeWatch Website\\",\\"buildNumber\\":\\"${BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\"}"
+                  }
+                ]'
+
+                echo "Event Published Successfully."
+                """
+            }
+        }
+
     }
 
     post {
