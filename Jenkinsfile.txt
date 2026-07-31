@@ -24,25 +24,22 @@ pipeline {
                     ERROR=1
                 fi
 
-                # Check HTML tag
+                # Validate HTML tags
                 grep -q "<html" index.html || {
                     echo "ERROR: Missing <html> tag"
                     ERROR=1
                 }
 
-                # Check HEAD tag
                 grep -q "<head" index.html || {
                     echo "ERROR: Missing <head> tag"
                     ERROR=1
                 }
 
-                # Check TITLE tag
                 grep -q "<title>" index.html || {
                     echo "ERROR: Missing <title> tag"
                     ERROR=1
                 }
 
-                # Check BODY tag
                 grep -q "<body" index.html || {
                     echo "ERROR: Missing <body> tag"
                     ERROR=1
@@ -67,10 +64,10 @@ pipeline {
             steps {
                 sh '''
                 echo "========================================"
-                echo "Deploying Website to Amazon S3..."
+                echo "Deploying index.html to Amazon S3..."
                 echo "========================================"
 
-                aws s3 sync . s3://s3-deployment-files --delete
+                aws s3 cp index.html s3://s3-deployment-files/index.html
 
                 echo "========================================"
                 echo "Deployment Successful"
@@ -85,7 +82,7 @@ pipeline {
         success {
             echo "========================================"
             echo "Pipeline Status : SUCCESS"
-            echo "Website Successfully Deployed to S3"
+            echo "Website Successfully Deployed to Amazon S3"
             echo "========================================"
         }
 
@@ -101,20 +98,5 @@ pipeline {
             echo "Pipeline Finished"
             echo "========================================"
         }
-    }
-}
-stage('Deploy to Amazon S3') {
-    steps {
-        sh '''
-        echo "========================================"
-        echo "Deploying index.html to Amazon S3..."
-        echo "========================================"
-
-        aws s3 cp index.html s3://s3-deployment-files/index.html
-
-        echo "========================================"
-        echo "Deployment Successful"
-        echo "========================================"
-        '''
     }
 }
