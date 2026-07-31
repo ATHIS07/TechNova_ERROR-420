@@ -12,90 +12,69 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
+                echo "========================================"
                 echo "Running HTML Validation..."
-
-                ERROR=0
-
-                [ -f index.html ] || {
-                    echo "ERROR: index.html not found"
-                    ERROR=1
-                }
-
-                grep -q "<title>" index.html || {
-                    echo "ERROR: Missing <title> tag"
-                    ERROR=1
-                }
-
-                if [ $ERROR -eq 1 ]; then
-                    echo "Validation Failed"
-                    exit 1
-                fi
-
-                echo "Validation Successful"
-                '''
-            }
-        }
-
-        stage('Deploy to S3') {
-            steps {
-                sh '''
-                echo "Deploying website to Amazon S3..."
-
-                aws s3 sync . s3://YOUR-BUCKET-NAME --delete
-
-                echo "Website deployed successfully."
-                '''
-            }
-        }
-    }pipeline {
-    agent any
-
-    stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh '''
-                echo "Running HTML Validation..."
+                echo "========================================"
 
                 ERROR=0
 
                 # Check if index.html exists
-                [ -f index.html ] || {
+                if [ ! -f index.html ]; then
                     echo "ERROR: index.html not found"
+                    ERROR=1
+                fi
+
+                # Check HTML tag
+                grep -q "<html" index.html || {
+                    echo "ERROR: Missing <html> tag"
                     ERROR=1
                 }
 
-                # Check if <title> tag exists
+                # Check HEAD tag
+                grep -q "<head" index.html || {
+                    echo "ERROR: Missing <head> tag"
+                    ERROR=1
+                }
+
+                # Check TITLE tag
                 grep -q "<title>" index.html || {
                     echo "ERROR: Missing <title> tag"
                     ERROR=1
                 }
 
-                # Stop pipeline if validation fails
+                # Check BODY tag
+                grep -q "<body" index.html || {
+                    echo "ERROR: Missing <body> tag"
+                    ERROR=1
+                }
+
                 if [ $ERROR -eq 1 ]; then
+                    echo "========================================"
                     echo "Validation Failed"
+                    echo "Pipeline Stopped"
+                    echo "========================================"
                     exit 1
                 fi
 
+                echo "========================================"
                 echo "Validation Successful"
+                echo "========================================"
                 '''
             }
         }
 
-        stage('Deploy to S3') {
+        stage('Deploy to Amazon S3') {
             steps {
                 sh '''
-                echo "Deploying website to Amazon S3..."
+                echo "========================================"
+                echo "Deploying Website to Amazon S3..."
+                echo "========================================"
 
                 aws s3 sync . s3://s3-deployment-files --delete
 
-                echo "Website deployed successfully."
+                echo "========================================"
+                echo "Deployment Successful"
+                echo "========================================"
                 '''
             }
         }
@@ -104,31 +83,23 @@ pipeline {
     post {
 
         success {
-            echo "Pipeline Completed Successfully"
+            echo "========================================"
+            echo "Pipeline Status : SUCCESS"
+            echo "Website Successfully Deployed to S3"
+            echo "========================================"
         }
 
         failure {
-            echo "Pipeline Failed"
+            echo "========================================"
+            echo "Pipeline Status : FAILURE"
+            echo "Deployment Skipped"
+            echo "========================================"
         }
 
         always {
+            echo "========================================"
             echo "Pipeline Finished"
-        }
-    }
-}
-
-    post {
-
-        success {
-            echo "Pipeline completed successfully."
-        }
-
-        failure {
-            echo "Pipeline failed."
-        }
-
-        always {
-            echo "Pipeline execution finished."
+            echo "========================================"
         }
     }
 }
