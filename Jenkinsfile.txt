@@ -59,56 +59,82 @@ pipeline {
             }
         }
 
-        stage('Publish Event to EventBridge') {
-            steps {
-                sh """
-                echo "========================================"
-                echo "Publishing Pipeline Event to EventBridge"
-                echo "========================================"
-
-                cat > event.json <<EOF
-[
-  {
-    "Source": "pipewatch.jenkins",
-    "DetailType": "Pipeline Status",
-    "EventBusName": "default",
-    "Detail": "{\\"pipelineName\\":\\"PipeWatch Website\\",\\"buildNumber\\":\\"${BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\"}"
-  }
-]
-EOF
-
-                echo "Generated Event:"
-                cat event.json
-
-                aws events put-events --entries file://event.json
-
-                echo "Event Published Successfully."
-                """
-            }
-        }
-
     }
 
     post {
 
         success {
+
             echo "========================================"
             echo "Pipeline Status : SUCCESS"
-            echo "Website Successfully Deployed"
             echo "========================================"
+
+            sh """
+            cat > event.json <<EOF
+[
+  {
+    "Source":"pipewatch.jenkins",
+    "DetailType":"Pipeline Status",
+    "EventBusName":"default",
+    "Detail":"{\\"PipelineName\\":\\"PipeWatch Frontend\\",\\"BuildNumber\\":\\"${BUILD_NUMBER}\\",\\"Branch\\":\\"main\\",\\"CurrentStage\\":\\"Deploy\\",\\"Status\\":\\"SUCCESS\\",\\"Environment\\":\\"Production\\",\\"TriggeredBy\\":\\"Jenkins\\",\\"StartTime\\":\\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\\",\\"Duration\\":0,\\"CommitID\\":\\"${GIT_COMMIT ?: 'Unknown'}\\",\\"JobName\\":\\"${JOB_NAME}\\",\\"BuildURL\\":\\"${BUILD_URL}\\"}"
+  }
+]
+EOF
+
+            aws events put-events --entries file://event.json
+            """
         }
 
         failure {
+
             echo "========================================"
-            echo "Pipeline Status : FAILURE"
-            echo "Deployment Cancelled"
+            echo "Pipeline Status : FAILED"
             echo "========================================"
+
+            sh """
+            cat > event.json <<EOF
+[
+  {
+    "Source":"pipewatch.jenkins",
+    "DetailType":"Pipeline Status",
+    "EventBusName":"default",
+    "Detail":"{\\"PipelineName\\":\\"PipeWatch Frontend\\",\\"BuildNumber\\":\\"${BUILD_NUMBER}\\",\\"Branch\\":\\"main\\",\\"CurrentStage\\":\\"Failed\\",\\"Status\\":\\"FAILED\\",\\"Environment\\":\\"Production\\",\\"TriggeredBy\\":\\"Jenkins\\",\\"StartTime\\":\\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\\",\\"Duration\\":0,\\"CommitID\\":\\"${GIT_COMMIT ?: 'Unknown'}\\",\\"JobName\\":\\"${JOB_NAME}\\",\\"BuildURL\\":\\"${BUILD_URL}\\"}"
+  }
+]
+EOF
+
+            aws events put-events --entries file://event.json
+            """
+        }
+
+        aborted {
+
+            echo "========================================"
+            echo "Pipeline Status : ABORTED"
+            echo "========================================"
+
+            sh """
+            cat > event.json <<EOF
+[
+  {
+    "Source":"pipewatch.jenkins",
+    "DetailType":"Pipeline Status",
+    "EventBusName":"default",
+    "Detail":"{\\"PipelineName\\":\\"PipeWatch Frontend\\",\\"BuildNumber\\":\\"${BUILD_NUMBER}\\",\\"Branch\\":\\"main\\",\\"CurrentStage\\":\\"Aborted\\",\\"Status\\":\\"ABORTED\\",\\"Environment\\":\\"Production\\",\\"TriggeredBy\\":\\"Jenkins\\",\\"StartTime\\":\\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\\",\\"Duration\\":0,\\"CommitID\\":\\"${GIT_COMMIT ?: 'Unknown'}\\",\\"JobName\\":\\"${JOB_NAME}\\",\\"BuildURL\\":\\"${BUILD_URL}\\"}"
+  }
+]
+EOF
+
+            aws events put-events --entries file://event.json
+            """
         }
 
         always {
+
             echo "========================================"
             echo "Pipeline Finished"
             echo "========================================"
+
             cleanWs()
         }
     }
