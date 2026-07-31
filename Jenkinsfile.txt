@@ -63,17 +63,24 @@ pipeline {
             steps {
                 sh """
                 echo "========================================"
-                echo "Publishing Event to EventBridge"
+                echo "Publishing Pipeline Event to EventBridge"
                 echo "========================================"
 
-                aws events put-events --entries '[
-                  {
-                    "Source":"pipewatch.jenkins",
-                    "DetailType":"Pipeline Status",
-                    "EventBusName":"default",
-                    "Detail":"{\\"pipelineName\\":\\"PipeWatch Website\\",\\"buildNumber\\":\\"${BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\"}"
-                  }
-                ]'
+                cat > event.json <<EOF
+[
+  {
+    "Source": "pipewatch.jenkins",
+    "DetailType": "Pipeline Status",
+    "EventBusName": "default",
+    "Detail": "{\\"pipelineName\\":\\"PipeWatch Website\\",\\"buildNumber\\":\\"${BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\"}"
+  }
+]
+EOF
+
+                echo "Generated Event:"
+                cat event.json
+
+                aws events put-events --entries file://event.json
 
                 echo "Event Published Successfully."
                 """
