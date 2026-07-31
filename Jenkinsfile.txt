@@ -16,13 +16,11 @@ pipeline {
 
                 ERROR=0
 
-                # Check if index.html exists
                 [ -f index.html ] || {
                     echo "ERROR: index.html not found"
                     ERROR=1
                 }
 
-                # Check HTML title
                 grep -q "<title>" index.html || {
                     echo "ERROR: Missing <title> tag"
                     ERROR=1
@@ -38,15 +36,66 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to S3') {
             steps {
                 sh '''
-                echo "Deploying Application..."
+                echo "Deploying website to Amazon S3..."
 
-                sudo cp index.html /var/www/html/
-                sudo systemctl restart apache2
+                aws s3 sync . s3://YOUR-BUCKET-NAME --delete
 
-                echo "Deployment Successful"
+                echo "Website deployed successfully."
+                '''
+            }
+        }
+    }pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                echo "Running HTML Validation..."
+
+                ERROR=0
+
+                # Check if index.html exists
+                [ -f index.html ] || {
+                    echo "ERROR: index.html not found"
+                    ERROR=1
+                }
+
+                # Check if <title> tag exists
+                grep -q "<title>" index.html || {
+                    echo "ERROR: Missing <title> tag"
+                    ERROR=1
+                }
+
+                # Stop pipeline if validation fails
+                if [ $ERROR -eq 1 ]; then
+                    echo "Validation Failed"
+                    exit 1
+                fi
+
+                echo "Validation Successful"
+                '''
+            }
+        }
+
+        stage('Deploy to S3') {
+            steps {
+                sh '''
+                echo "Deploying website to Amazon S3..."
+
+                aws s3 sync . s3://s3-deployment-files --delete
+
+                echo "Website deployed successfully."
                 '''
             }
         }
@@ -56,16 +105,30 @@ pipeline {
 
         success {
             echo "Pipeline Completed Successfully"
-            // Later: CloudWatch will record SUCCESS
         }
 
         failure {
             echo "Pipeline Failed"
-            // Later: CloudWatch will record FAILURE
         }
 
         always {
             echo "Pipeline Finished"
+        }
+    }
+}
+
+    post {
+
+        success {
+            echo "Pipeline completed successfully."
+        }
+
+        failure {
+            echo "Pipeline failed."
+        }
+
+        always {
+            echo "Pipeline execution finished."
         }
     }
 }
