@@ -1,6 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        S3_BUCKET = 's3-deployment-files'
+        AWS_DEFAULT_REGION = 'ap-south-1'
+    }
+
+    options {
+        timestamps()
+    }
+
     stages {
 
         stage('Checkout') {
@@ -9,69 +18,43 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Validate HTML') {
             steps {
                 sh '''
                 echo "========================================"
-                echo "Running HTML Validation..."
+                echo "Validating HTML..."
                 echo "========================================"
 
-                ERROR=0
-
-                # Check if index.html exists
                 if [ ! -f index.html ]; then
-                    echo "ERROR: index.html not found"
-                    ERROR=1
-                fi
-
-                # Validate HTML tags
-                grep -q "<html" index.html || {
-                    echo "ERROR: Missing <html> tag"
-                    ERROR=1
-                }
-
-                grep -q "<head" index.html || {
-                    echo "ERROR: Missing <head> tag"
-                    ERROR=1
-                }
-
-                grep -q "<title>" index.html || {
-                    echo "ERROR: Missing <title> tag"
-                    ERROR=1
-                }
-
-                grep -q "<body" index.html || {
-                    echo "ERROR: Missing <body> tag"
-                    ERROR=1
-                }
-
-                if [ $ERROR -eq 1 ]; then
-                    echo "========================================"
-                    echo "Validation Failed"
-                    echo "Pipeline Stopped"
-                    echo "========================================"
+                    echo "ERROR: index.html not found."
                     exit 1
                 fi
 
-                echo "========================================"
-                echo "Validation Successful"
-                echo "========================================"
+                tidy -qe index.html
+
+                echo "HTML Validation Passed."
                 '''
             }
         }
 
-        stage('Deploy to Amazon S3') {
+        stage('Deploy Website') {
             steps {
                 sh '''
                 echo "========================================"
-                echo "Deploying index.html to Amazon S3..."
+                echo "Deploying Website to Amazon S3..."
                 echo "========================================"
 
-                aws s3 cp index.html s3://s3-deployment-files/index.html
+                aws s3 sync . s3://$S3_BUCKET \
+                    --delete \
+                    --exclude ".git/*" \
+                    --exclude ".github/*" \
+                    --exclude "*.zip" \
+                    --exclude "Jenkinsfile" \
+                    --exclude "Jenkinsfile.txt" \
+                    --exclude "*.md" \
+                    --exclude ".gitignore"
 
-                echo "========================================"
-                echo "Deployment Successful"
-                echo "========================================"
+                echo "Deployment Completed Successfully."
                 '''
             }
         }
@@ -82,14 +65,14 @@ pipeline {
         success {
             echo "========================================"
             echo "Pipeline Status : SUCCESS"
-            echo "Website Successfully Deployed to Amazon S3"
+            echo "Website Successfully Deployed"
             echo "========================================"
         }
 
         failure {
             echo "========================================"
             echo "Pipeline Status : FAILURE"
-            echo "Deployment Skipped"
+            echo "Deployment Cancelled"
             echo "========================================"
         }
 
@@ -97,6 +80,7 @@ pipeline {
             echo "========================================"
             echo "Pipeline Finished"
             echo "========================================"
+            cleanWs()
         }
     }
 }
