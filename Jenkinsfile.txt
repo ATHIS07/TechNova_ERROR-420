@@ -1,75 +1,32 @@
-pipeline {
-    agent any
+stage('Test') {
+    steps {
+        sh '''
+        echo "========== Running Project Validation =========="
 
-    stages {
+        ERROR=0
 
-        stage('Checkout') {
-            steps {
-                echo "========== CHECKOUT =========="
-                checkout scm
-                echo "Source code downloaded successfully."
-            }
+        # Check required files
+        [ -f index.html ] || { echo "ERROR: index.html not found"; ERROR=1; }
+        [ -f style.css ] || { echo "ERROR: style.css not found"; ERROR=1; }
+        [ -f script.js ] || { echo "ERROR: script.js not found"; ERROR=1; }
+
+        # Check files are not empty
+        [ -s index.html ] || { echo "ERROR: index.html is empty"; ERROR=1; }
+        [ -s style.css ] || { echo "ERROR: style.css is empty"; ERROR=1; }
+        [ -s script.js ] || { echo "ERROR: script.js is empty"; ERROR=1; }
+
+        # Check HTML title
+        grep -q "<title>" index.html || {
+            echo "ERROR: Missing <title> tag"
+            ERROR=1
         }
 
-        stage('Build') {
-            steps {
-                sh '''
-                echo "========== BUILD =========="
-                echo "Building Static Website..."
-                ls -la
-                '''
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh '''
-                echo "========== TEST =========="
-
-                # Check main HTML file exists
-                if [ ! -f index.html ]; then
-                    echo "ERROR: index.html not found"
-                    exit 1
-                fi
-
-                echo "index.html found"
-
-                # Check HTML structure
-                grep -q "<html" index.html || { echo "Missing <html> tag"; exit 1; }
-                grep -q "</html>" index.html || { echo "Missing </html> tag"; exit 1; }
-
-                grep -q "<head" index.html || { echo "Missing <head> tag"; exit 1; }
-                grep -q "</head>" index.html || { echo "Missing </head> tag"; exit 1; }
-
-                grep -q "<body" index.html || { echo "Missing <body> tag"; exit 1; }
-                grep -q "</body>" index.html || { echo "Missing </body> tag"; exit 1; }
-
-                grep -q "<title>" index.html || { echo "Missing <title> tag"; exit 1; }
-
-                echo "HTML Validation Successful"
-                '''
-            }
-        }
-
-        stage('Result') {
-            steps {
-                echo "Build and Testing Completed Successfully"
-            }
-        }
-    }
-
-    post {
-
-        success {
-            echo "Pipeline executed successfully."
-        }
-
-        failure {
-            echo "Pipeline failed. Please check the errors."
-        }
-
-        always {
-            echo "Pipeline execution finished."
-        }
+        if [ $ERROR -eq 1 ]; then
+            echo "Validation Failed"
+            exit 1
+        else
+            echo "Validation Successful"
+        fi
+        '''
     }
 }
