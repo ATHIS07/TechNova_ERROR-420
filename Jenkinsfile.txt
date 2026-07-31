@@ -103,3 +103,18 @@ pipeline {
         }
     }
 }
+stage('Deploy to Amazon S3') {
+    steps {
+        sh '''
+        echo "========================================"
+        echo "Deploying index.html to Amazon S3..."
+        echo "========================================"
+
+        aws s3 cp index.html s3://s3-deployment-files/index.html
+
+        echo "========================================"
+        echo "Deployment Successful"
+        echo "========================================"
+        '''
+    }
+}
