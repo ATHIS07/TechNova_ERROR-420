@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Verify Project') {
+            steps {
+                sh '''
+                    echo "Checking Project..."
+                    ls -la
+                    test -f index.html
+                '''
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh '''
+                    echo "Static Website Build Successful"
+                '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh '''
+                    zip -r TechNova.zip .
+                '''
+            }
+        }
+
+        stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'TechNova.zip'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Build Successful'
+        }
+        failure {
+            echo 'Build Failed'
+        }
+    }
+}
