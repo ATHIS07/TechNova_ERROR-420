@@ -5,49 +5,71 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo "========== CHECKOUT =========="
                 checkout scm
-            }
-        }
-
-        stage('Verify Project') {
-            steps {
-                sh '''
-                    echo "Checking Project..."
-                    ls -la
-                    test -f index.html
-                '''
+                echo "Source code downloaded successfully."
             }
         }
 
         stage('Build') {
             steps {
                 sh '''
-                    echo "Static Website Build Successful"
+                echo "========== BUILD =========="
+                echo "Building Static Website..."
+                ls -la
                 '''
             }
         }
 
-        stage('Package') {
+        stage('Test') {
             steps {
                 sh '''
-                    zip -r TechNova.zip .
+                echo "========== TEST =========="
+
+                # Check main HTML file exists
+                if [ ! -f index.html ]; then
+                    echo "ERROR: index.html not found"
+                    exit 1
+                fi
+
+                echo "index.html found"
+
+                # Check HTML structure
+                grep -q "<html" index.html || { echo "Missing <html> tag"; exit 1; }
+                grep -q "</html>" index.html || { echo "Missing </html> tag"; exit 1; }
+
+                grep -q "<head" index.html || { echo "Missing <head> tag"; exit 1; }
+                grep -q "</head>" index.html || { echo "Missing </head> tag"; exit 1; }
+
+                grep -q "<body" index.html || { echo "Missing <body> tag"; exit 1; }
+                grep -q "</body>" index.html || { echo "Missing </body> tag"; exit 1; }
+
+                grep -q "<title>" index.html || { echo "Missing <title> tag"; exit 1; }
+
+                echo "HTML Validation Successful"
                 '''
             }
         }
 
-        stage('Archive') {
+        stage('Result') {
             steps {
-                archiveArtifacts artifacts: 'TechNova.zip'
+                echo "Build and Testing Completed Successfully"
             }
         }
     }
 
     post {
+
         success {
-            echo 'Build Successful'
+            echo "Pipeline executed successfully."
         }
+
         failure {
-            echo 'Build Failed'
+            echo "Pipeline failed. Please check the errors."
+        }
+
+        always {
+            echo "Pipeline execution finished."
         }
     }
 }
