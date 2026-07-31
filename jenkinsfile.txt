@@ -3,9 +3,8 @@ pipeline {
 
     stages {
 
-        stage('Checkout Source') {
+        stage('Checkout') {
             steps {
-                echo 'Checking out source code from GitHub...'
                 checkout scm
             }
         }
@@ -13,16 +12,9 @@ pipeline {
         stage('Verify Project') {
             steps {
                 sh '''
-                    echo "Project Files:"
-                    pwd
+                    echo "Checking Project..."
                     ls -la
-
-                    if [ ! -f index.html ]; then
-                        echo "ERROR: index.html not found!"
-                        exit 1
-                    fi
-
-                    echo "Project verification successful."
+                    test -f index.html
                 '''
             }
         }
@@ -30,40 +22,32 @@ pipeline {
         stage('Build') {
             steps {
                 sh '''
-                    echo "Static website detected."
-                    echo "No compilation required."
+                    echo "Static Website Build Successful"
                 '''
             }
         }
 
-        stage('Archive Website') {
+        stage('Package') {
             steps {
                 sh '''
-                    zip -r website.zip .
+                    zip -r TechNova.zip .
                 '''
-                archiveArtifacts artifacts: 'website.zip', fingerprint: true
             }
         }
 
-        stage('Deployment') {
+        stage('Archive') {
             steps {
-                echo 'Deployment stage will be configured later.'
+                archiveArtifacts artifacts: 'TechNova.zip'
             }
         }
     }
 
     post {
-
         success {
-            echo 'Pipeline completed successfully.'
+            echo 'Build Successful'
         }
-
         failure {
-            echo 'Pipeline failed.'
-        }
-
-        always {
-            cleanWs()
+            echo 'Build Failed'
         }
     }
 }
