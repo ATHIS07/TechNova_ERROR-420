@@ -1,32 +1,44 @@
-stage('Test') {
-    steps {
-        sh '''
-        echo "========== Running Project Validation =========="
+pipeline {
+    agent any
 
-        ERROR=0
+    stages {
 
-        # Check required files
-        [ -f index.html ] || { echo "ERROR: index.html not found"; ERROR=1; }
-        [ -f style.css ] || { echo "ERROR: style.css not found"; ERROR=1; }
-        [ -f script.js ] || { echo "ERROR: script.js not found"; ERROR=1; }
-
-        # Check files are not empty
-        [ -s index.html ] || { echo "ERROR: index.html is empty"; ERROR=1; }
-        [ -s style.css ] || { echo "ERROR: style.css is empty"; ERROR=1; }
-        [ -s script.js ] || { echo "ERROR: script.js is empty"; ERROR=1; }
-
-        # Check HTML title
-        grep -q "<title>" index.html || {
-            echo "ERROR: Missing <title> tag"
-            ERROR=1
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
 
-        if [ $ERROR -eq 1 ]; then
-            echo "Validation Failed"
-            exit 1
-        else
-            echo "Validation Successful"
-        fi
-        '''
+        stage('Test') {
+            steps {
+                sh '''
+                ERROR=0
+
+                [ -f index.html ] || { echo "ERROR: index.html not found"; ERROR=1; }
+
+                grep -q "<title>" index.html || {
+                    echo "ERROR: Missing title"
+                    ERROR=1
+                }
+
+                if [ $ERROR -eq 1 ]; then
+                    exit 1
+                fi
+
+                echo "Validation Successful"
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                sudo cp index.html /var/www/html/
+                sudo systemctl restart apache2
+                curl http://localhost
+                '''
+            }
+        }
+
     }
 }
