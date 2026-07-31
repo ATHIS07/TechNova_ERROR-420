@@ -12,16 +12,24 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
+                echo "Running HTML Validation..."
+
                 ERROR=0
 
-                [ -f index.html ] || { echo "ERROR: index.html not found"; ERROR=1; }
+                # Check if index.html exists
+                [ -f index.html ] || {
+                    echo "ERROR: index.html not found"
+                    ERROR=1
+                }
 
+                # Check HTML title
                 grep -q "<title>" index.html || {
-                    echo "ERROR: Missing title"
+                    echo "ERROR: Missing <title> tag"
                     ERROR=1
                 }
 
                 if [ $ERROR -eq 1 ]; then
+                    echo "Validation Failed"
                     exit 1
                 fi
 
@@ -33,12 +41,31 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
+                echo "Deploying Application..."
+
                 sudo cp index.html /var/www/html/
                 sudo systemctl restart apache2
-                curl http://localhost
+
+                echo "Deployment Successful"
                 '''
             }
         }
+    }
 
+    post {
+
+        success {
+            echo "Pipeline Completed Successfully"
+            // Later: CloudWatch will record SUCCESS
+        }
+
+        failure {
+            echo "Pipeline Failed"
+            // Later: CloudWatch will record FAILURE
+        }
+
+        always {
+            echo "Pipeline Finished"
+        }
     }
 }
