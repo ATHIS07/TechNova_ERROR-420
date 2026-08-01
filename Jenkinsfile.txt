@@ -4,8 +4,9 @@ pipeline {
     environment {
         S3_BUCKET = 's3-deployment-files'
         AWS_DEFAULT_REGION = 'ap-south-1'
+        PIPELINE_NAME = 'PipeWatch Frontend'
     }
- 
+
     options {
         timestamps()
     }
@@ -14,7 +15,26 @@ pipeline {
 
         stage('Checkout') {
             steps {
+
+                script {
+                    env.PIPELINE_START_TIME = new Date().format(
+                        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                        TimeZone.getTimeZone('UTC')
+                    )
+                }
+
                 checkout scm
+
+                script {
+                    env.COMMIT_ID = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Commit ID: ${env.COMMIT_ID}"
+                    echo "Pipeline Start Time: ${env.PIPELINE_START_TIME}"
+                }
+
             }
         }
 
@@ -61,29 +81,39 @@ pipeline {
 
         stage('Publish Event to EventBridge') {
             steps {
-                sh """
-                echo "========================================"
-                echo "Publishing Pipeline Event to EventBridge"
-                echo "========================================"
+                script {
 
-                cat > event.json <<EOF
+                    def endTime = new Date()
+                    def endTimeIso = endTime.format(
+                        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                        TimeZone.getTimeZone('UTC')
+                    )
+
+                    def start = Date.parse(
+                        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                        env.PIPELINE_START_TIME
+                    )
+
+                    def duration = ((endTime.time - start.time) / 1000).toInteger()
+
+                    writeFile file: 'event.json', text: """
 [
   {
     "Source": "pipewatch.jenkins",
     "DetailType": "Pipeline Status",
     "EventBusName": "default",
-    "Detail": "{\\"pipelineName\\":\\"PipeWatch Website\\",\\"buildNumber\\":\\"${BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\"}"
+    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
   }
 ]
-EOF
+"""
 
-                echo "Generated Event:"
-                cat event.json
+                    sh '''
+                    echo "Generated Event"
+                    cat event.json
+                    aws events put-events --entries file://event.json
+                    '''
 
-                aws events put-events --entries file://event.json
-
-                echo "Event Published Successfully."
-                """
+                }
             }
         }
 
@@ -99,6 +129,31 @@ EOF
         }
 
         failure {
+
+            script {
+
+                def endTime = new Date()
+                def endTimeIso = endTime.format(
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                    TimeZone.getTimeZone('UTC')
+                )
+
+                writeFile file: 'failure.json', text: """
+[
+  {
+    "Source": "pipewatch.jenkins",
+    "DetailType": "Pipeline Status",
+    "EventBusName": "default",
+    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID ?: 'Unknown'}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"FAILURE\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME ?: ''}\\",\\"endTime\\":\\"${endTimeIso}\\"}"
+  }
+]
+"""
+
+                sh '''
+                aws events put-events --entries file://failure.json || true
+                '''
+            }
+
             echo "========================================"
             echo "Pipeline Status : FAILURE"
             echo "Deployment Cancelled"
