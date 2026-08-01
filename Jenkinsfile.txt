@@ -4,7 +4,7 @@ pipeline {
     environment {
         S3_BUCKET = 's3-deployment-files'
         AWS_DEFAULT_REGION = 'ap-south-1'
-        PIPELINE_NAME = 'PipeWatch Frontend'
+        PIPELINE_NAME = 'ATHISH'
     }
 
     options {
