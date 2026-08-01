@@ -17,10 +17,8 @@ pipeline {
             steps {
 
                 script {
-
-    env.CURRENT_STAGE = "Checkout"
-
-    env.PIPELINE_START_TIME = new Date().format(
+                    env.CURRENT_STAGE = "Checkout"
+                    env.PIPELINE_START_TIME = new Date().format(
                         "yyyy-MM-dd'T'HH:mm:ss'Z'",
                         TimeZone.getTimeZone('UTC')
                     )
@@ -42,13 +40,13 @@ pipeline {
         }
 
         stage('Validate HTML') {
-    steps {
+            steps {
 
-        script {
-            env.CURRENT_STAGE = "HTML Validation"
-        }
+                script {
+                    env.CURRENT_STAGE = "HTML Validation"
+                }
 
-        sh '''
+                sh '''
                 echo "========================================"
                 echo "Validating HTML..."
                 echo "========================================"
@@ -66,13 +64,13 @@ pipeline {
         }
 
         stage('Deploy Website') {
-    steps {
+            steps {
 
-        script {
-            env.CURRENT_STAGE = "Deploy"
-        }
+                script {
+                    env.CURRENT_STAGE = "Deploy"
+                }
 
-        sh '''
+                sh '''
                 echo "========================================"
                 echo "Deploying Website to Amazon S3..."
                 echo "========================================"
@@ -96,11 +94,9 @@ pipeline {
             steps {
                 script {
 
-                    def endTime = new Date()script {
+                    env.CURRENT_STAGE = "Publish Event"
 
-    env.CURRENT_STAGE = "Publish Event"
-
-    def endTime = new Date()
+                    def endTime = new Date()
                     def endTimeIso = endTime.format(
                         "yyyy-MM-dd'T'HH:mm:ss'Z'",
                         TimeZone.getTimeZone('UTC')
@@ -182,5 +178,4 @@ pipeline {
             cleanWs()
         }
     }
-}
 }
