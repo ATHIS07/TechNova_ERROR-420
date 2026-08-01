@@ -50,14 +50,29 @@ pipeline {
                 echo "Validating HTML..."
                 echo "========================================"
 
-                if [ ! -f index.html ]; then
-                    echo "ERROR: index.html not found."
-                    exit 1
-                fi
+                echo "========================================"
+echo "Validating HTML Files..."
+echo "========================================"
 
-                tidy -qe index.html
+HTML_FILES=$(find . -maxdepth 1 -name "*.html")
 
-                echo "HTML Validation Passed."
+if [ -z "$HTML_FILES" ]; then
+    echo "ERROR: No HTML files found."
+    exit 1
+fi
+
+for file in $HTML_FILES
+do
+    echo "Checking $file"
+    tidy -qe "$file"
+
+    if [ $? -ne 0 ]; then
+        echo "HTML validation failed in $file"
+        exit 1
+    fi
+done
+
+echo "All HTML files validated successfully."
                 '''
             }
         }
