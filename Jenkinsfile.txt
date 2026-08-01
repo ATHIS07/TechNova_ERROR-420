@@ -89,12 +89,8 @@ pipeline {
                         TimeZone.getTimeZone('UTC')
                     )
 
-                    def start = Date.parse(
-                        "yyyy-MM-dd'T'HH:mm:ss'Z'",
-                        env.PIPELINE_START_TIME
-                    )
-
-                    def duration = ((endTime.time - start.time) / 1000).toInteger()
+                    def duration = currentBuild.duration > 0 ?
+                        (currentBuild.duration / 1000).toInteger() : 0
 
                     writeFile file: 'event.json', text: """
 [
@@ -137,6 +133,8 @@ pipeline {
                     "yyyy-MM-dd'T'HH:mm:ss'Z'",
                     TimeZone.getTimeZone('UTC')
                 )
+                def duration = currentBuild.duration > 0 ?
+                    (currentBuild.duration / 1000).toInteger() : 0
 
                 writeFile file: 'failure.json', text: """
 [
@@ -144,7 +142,7 @@ pipeline {
     "Source": "pipewatch.jenkins",
     "DetailType": "Pipeline Status",
     "EventBusName": "default",
-    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID ?: 'Unknown'}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"FAILURE\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME ?: ''}\\",\\"endTime\\":\\"${endTimeIso}\\"}"
+    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID ?: 'Unknown'}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"FAILURE\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME ?: ''}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
   }
 ]
 """
