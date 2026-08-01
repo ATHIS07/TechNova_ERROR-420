@@ -17,7 +17,10 @@ pipeline {
             steps {
 
                 script {
-                    env.PIPELINE_START_TIME = new Date().format(
+
+    env.CURRENT_STAGE = "Checkout"
+
+    env.PIPELINE_START_TIME = new Date().format(
                         "yyyy-MM-dd'T'HH:mm:ss'Z'",
                         TimeZone.getTimeZone('UTC')
                     )
@@ -39,8 +42,13 @@ pipeline {
         }
 
         stage('Validate HTML') {
-            steps {
-                sh '''
+    steps {
+
+        script {
+            env.CURRENT_STAGE = "HTML Validation"
+        }
+
+        sh '''
                 echo "========================================"
                 echo "Validating HTML..."
                 echo "========================================"
@@ -58,8 +66,13 @@ pipeline {
         }
 
         stage('Deploy Website') {
-            steps {
-                sh '''
+    steps {
+
+        script {
+            env.CURRENT_STAGE = "Deploy"
+        }
+
+        sh '''
                 echo "========================================"
                 echo "Deploying Website to Amazon S3..."
                 echo "========================================"
@@ -83,7 +96,11 @@ pipeline {
             steps {
                 script {
 
-                    def endTime = new Date()
+                    def endTime = new Date()script {
+
+    env.CURRENT_STAGE = "Publish Event"
+
+    def endTime = new Date()
                     def endTimeIso = endTime.format(
                         "yyyy-MM-dd'T'HH:mm:ss'Z'",
                         TimeZone.getTimeZone('UTC')
@@ -98,7 +115,7 @@ pipeline {
     "Source": "pipewatch.jenkins",
     "DetailType": "Pipeline Status",
     "EventBusName": "default",
-    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
+    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID}\\",\\"stage\\":\\"${env.CURRENT_STAGE}\\",\\"status\\":\\"SUCCESS\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
   }
 ]
 """
@@ -142,7 +159,7 @@ pipeline {
     "Source": "pipewatch.jenkins",
     "DetailType": "Pipeline Status",
     "EventBusName": "default",
-    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID ?: 'Unknown'}\\",\\"stage\\":\\"Deploy\\",\\"status\\":\\"FAILURE\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME ?: ''}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
+    "Detail": "{\\"pipelineName\\":\\"${env.PIPELINE_NAME}\\",\\"buildNumber\\":\\"${env.BUILD_NUMBER}\\",\\"branch\\":\\"main\\",\\"commitId\\":\\"${env.COMMIT_ID ?: 'Unknown'}\\",\\"stage\\":\\"${env.CURRENT_STAGE}\\",\\"status\\":\\"FAILURE\\",\\"environment\\":\\"Production\\",\\"triggeredBy\\":\\"Jenkins\\",\\"startTime\\":\\"${env.PIPELINE_START_TIME ?: ''}\\",\\"endTime\\":\\"${endTimeIso}\\",\\"duration\\":${duration}}"
   }
 ]
 """
